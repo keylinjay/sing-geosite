@@ -24,64 +24,85 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var githubClient *github.Client
+var githubClient *github.Client // 定义一个githubClient变量，类型为*github.Client
 
-func init() {
-	accessToken, loaded := os.LookupEnv("ACCESS_TOKEN")
-	if !loaded {
-		githubClient = github.NewClient(nil)
+func init() { // 初始化函数
+	accessToken, loaded := os.LookupEnv("ACCESS_TOKEN") // 从环境变量中查找ACCESS_TOKEN，并赋值给accessToken变量
+	if !loaded { // 如果环境变量ACCESS_TOKEN不存在
+		githubClient = github.NewClient(nil) // 使用nil创建一个新的githubClient
 		return
 	}
-	transport := &github.BasicAuthTransport{
-		Username: accessToken,
+	transport := &github.BasicAuthTransport{ // 创建一个BasicAuthTransport
+		Username: accessToken, // 将accessToken赋值给Username
 	}
-	githubClient = github.NewClient(transport.Client())
+	githubClient = github.NewClient(transport.Client()) // 使用transport.Client()创建一个新的githubClient
 }
 
+// This function fetches the latest release of a repository from a given URL
 func fetch(from string) (*github.RepositoryRelease, error) {
+	// Split the URL by the "/" character and store the first two elements in the "names" array
 	names := strings.SplitN(from, "/", 2)
+	// Get the latest release of the repository using the GitHub API
 	latestRelease, _, err := githubClient.Repositories.GetLatestRelease(context.Background(), names[0], names[1])
+	// If an error occurs, return nil and the error
 	if err != nil {
 		return nil, err
 	}
+	// Return the latest release and no error
 	return latestRelease, err
 }
 
+// Function to download a file from a given URL
 func get(downloadURL *string) ([]byte, error) {
+	// Log the URL being downloaded
 	log.Info("download ", *downloadURL)
+	// Get the response from the URL
 	response, err := http.Get(*downloadURL)
 	if err != nil {
+		// Return an error if the response was not received
 		return nil, err
 	}
+	// Close the response body
 	defer response.Body.Close()
+	// Read all the data from the response body and return it
 	return io.ReadAll(response.Body)
 }
 
+// download function downloads the geosite.dat file from the given release
 func download(release *github.RepositoryRelease) ([]byte, error) {
+	// Find the geosite.dat asset in the release assets
 	geositeAsset := common.Find(release.Assets, func(it *github.ReleaseAsset) bool {
 		return *it.Name == "geosite.dat"
 	})
+	// Find the geosite.dat.sha256sum asset in the release assets
 	geositeChecksumAsset := common.Find(release.Assets, func(it *github.ReleaseAsset) bool {
 		return *it.Name == "geosite.dat.sha256sum"
 	})
+	// If geosite.dat asset is not found, return an error
 	if geositeAsset == nil {
 		return nil, E.New("geosite asset not found in upstream release ", release.Name)
 	}
+	// If geosite.dat.sha256sum asset is not found, return an error
 	if geositeChecksumAsset == nil {
 		return nil, E.New("geosite asset not found in upstream release ", release.Name)
 	}
+	// Download the geosite.dat file
 	data, err := get(geositeAsset.BrowserDownloadURL)
 	if err != nil {
 		return nil, err
 	}
+	// Download the geosite.dat.sha256sum file
 	remoteChecksum, err := get(geositeChecksumAsset.BrowserDownloadURL)
 	if err != nil {
 		return nil, err
 	}
+	// Calculate the checksum of the geosite.dat file
 	checksum := sha256.Sum256(data)
+	// If the calculated checksum does not match the remote checksum, return an error
 	if hex.EncodeToString(checksum[:]) != string(remoteChecksum[:64]) {
 		return nil, E.New("checksum mismatch")
 	}
+	// Return the downloaded data
 	return data, nil
 }
 
@@ -289,6 +310,8 @@ func generate(release *github.RepositoryRelease, output string, cnOutput string,
 	}
 	filterTags(domainMap)
 	mergeTags(domainMap)
+	
+
 	outputPath, _ := filepath.Abs(output)
 	os.Stderr.WriteString("write " + outputPath + "\n")
 	outputFile, err := os.Create(output)
@@ -374,7 +397,7 @@ func release(source string, destination string, output string, cnOutput string, 
 	if err != nil {
 		return err
 	}
-	setActionOutput("tag", *sourceRelease.Name)
+	setActionOutput("tag", "release-" + *sourceRelease.Name)
 	return nil
 }
 
