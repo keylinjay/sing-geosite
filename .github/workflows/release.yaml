@@ -45,13 +45,13 @@ jobs:
           keep_latest: 10
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-      - name: Release geosite
-        if: steps.build.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.build.outputs.tag }}
-          files: |
-            geosite.db
-            geosite.db.sha256sum
-            geosite-cn.db
-            geosite-cn.db.sha256sum
+      # - name: Release geosite
+      #   if: steps.build.outputs.skip != 'true'
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     tag_name: ${{ steps.build.outputs.tag }}
+      #     files: |
+      #       geosite.db
+      #       geosite.db.sha256sum
+      #       geosite-cn.db
+      #       geosite-cn.db.sha256sum
