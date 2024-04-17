@@ -397,7 +397,9 @@ func release(source string, destination string, output string, cnOutput string, 
 	if err != nil {
 		return err
 	}
-	setActionOutput("tag", "release-" + *sourceRelease.Name)
+	// 将*sourceRelease.Name中的空格换成-
+	
+	setActionOutput("tag", strings.ReplaceAll(*sourceRelease.Name, " ", "-"))
 	return nil
 }
 
